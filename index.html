@@ -1,0 +1,83 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>HealMind</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body class="{% if user %}logged-in{% endif %}">
+        <div class="navbar">
+
+   
+        <div class="nav-left">
+            {% if user %}
+                <span>Welcome, {{ user }}</span>
+            {% endif %}
+        </div>
+
+        <div class="nav-center">
+            <a href="/" class="logo">HealMind</a>
+        </div>
+
+        <div class="nav-right">
+            <a href="/">Home</a>
+            <a href="/ai">AI</a>
+            <a href="/logout">Account</a>
+        </div>
+
+        </div>
+    <div class="hero">
+        <h1>Welcome to <span class="gradient-text">HealMind</span></h1>
+        <div class="subtitle">
+        <p class="subtitle">
+        Break free from bad habits. Track your progress. Stay in control.
+        </p>
+
+        <div class="quote-container {% if user %}quote-logged{% endif %}">
+            <p class="quote-title">Quote of the day</p>
+            <p class="quote">“{{ quote }}”</p>
+        </div>
+
+        <div class="hero-buttons">
+            {% if not user %}
+                <a href="/login" class="btn">Login</a>
+                <a href="/register" class="btn">Register</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="divider"></div>
+    <div class="features {% if user %}features-logged{% endif %}">
+        <a href="/dashboard" class="feature">
+        <i data-lucide="activity"></i>
+        <h3>Track Habits</h3>
+        <p>Monitor your progress in real <span class="highlight">time</span></p>
+    </a>
+
+        <a class="feature" href="/dashboard" onclick="sessionStorage.setItem('openMilestones','1')">
+            <i data-lucide="target"></i>
+            <h3>Stay Motivated</h3>
+            <p>Reach milestones and stay <span class="highlight">consistent</span></p>
+        </a>
+
+        <a class="feature" href="/ai">
+            <i data-lucide="brain"></i>
+            <h3>AI Support</h3>
+            <p>Get smart advice to quit <span class="highlight">faster</span></p>
+        </a>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+    lucide.createIcons();
+    </script>
+    <script>
+    function toggleAccountDropdown(event) {
+        event.stopPropagation();
+        document.getElementById("account-dropdown").classList.toggle("open");
+    }
+    document.addEventListener("click", () => {
+        const d = document.getElementById("account-dropdown");
+        if (d) d.classList.remove("open");
+    });
+    </script>
+    </body>
+    </html>

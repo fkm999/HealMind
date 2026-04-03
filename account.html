@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Account – HealMind</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-left">
+        <span>Welcome, {{ user }}</span>
+    </div>
+    <div class="nav-center">
+        <a href="/" class="logo">HealMind</a>
+    </div>
+    <div class="nav-right">
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/ai">AI</a>
+    </div>
+</div>
+
+<div class="account-page">
+    <div class="account-card">
+
+        <div class="account-avatar">
+            {{ user[0] | upper }}
+        </div>
+
+        <h2 class="account-name">{{ user_data[0] }}</h2>
+        <p class="account-email">{{ user_data[1] }}</p>
+
+        <div class="account-divider"></div>
+
+        <a href="/logout" class="account-logout-btn">
+            <i data-lucide="log-out"></i>
+            Log Out
+        </a>
+
+    </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="navbar">
+    <div class="nav-left">
+        {% if user %}
+            <span>Welcome, {{ user }}</span>
+        {% endif %}
+    </div>
+
+    <div class="nav-center">
+        <a href="/" class="logo">HealMind</a>
+    </div>
+
+    <div class="nav-right">
+        <a href="/">Home</a>
+        <a href="/ai">AI</a>
+    </div>
+    </div>
+
+    <div class="auth-container">
+
+    <div class="auth-card">
+        <h2>Login</h2>
+        <p class="auth-sub">Welcome back. Enter your credentials.</p>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <input type="email" name="email" placeholder="Email" required>
+            </div>
+
+            <div class="form-group password-group">
+                <input type="password" name="password" id="loginPassword" placeholder="Password" required>
+                <i data-lucide="eye" class="eye-icon" onclick="togglePassword('loginPassword', this)"></i>
+            </div>
+            <button type="submit">Login</button>
+
+        </form>
+        <p class="auth-switch">
+            Don’t have an account? <a href="/register">Register</a>
+        </p>
+    </div>
+
+    </div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+lucide.createIcons();
+
+function togglePassword(id, icon) {
+    const input = document.getElementById(id);
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.setAttribute("data-lucide", "eye-off");
+    } else {
+        input.type = "password";
+        icon.setAttribute("data-lucide", "eye");
+    }
+
+    lucide.createIcons();
+}
+</script>
+
+</body>
+</html>

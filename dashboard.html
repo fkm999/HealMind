@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="navbar">
+    <div class="nav-left">
+        {% if user %}<span>Welcome, {{ user }}</span>{% endif %}
+    </div>
+    <div class="nav-center">
+        <a href="/" class="logo">HealMind</a>
+    </div>
+    <div class="nav-right">
+        <a href="/">Home</a>
+        <a href="/ai">AI</a>
+        <a href="/logout">Account</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+    <!-- LEFT: habit cards list -->
+    <div class="habit-container">
+        {% for h in habits %}
+        <div class="habit-card"
+             data-money="{{ h[2] or 0 }}"
+             data-time-per-day="{{ h[3] or 0 }}"
+             onclick="selectHabit('{{ h[0] }}', '{{ h[1] }}', this, {{ h[2] or 0 }}, {{ h[3] or 0 }})">
+
+            <div class="card-header">
+                <div class="left">
+                    <i data-lucide="{{
+                        'cigarette-off' if h[0]=='Smoking' else
+                        'cannabis-off'  if h[0]=='Drugs' else
+                        'pill'          if h[0]=='Pills' else
+                        'hat-glasses'   if h[0]=='Porn' else
+                        'leaf'          if h[0]=='Weed' else
+                        'sofa'          if h[0]=='Procrastination' else
+                        'gamepad-2'     if h[0]=='Video Games' else
+                        'piggy-bank'    if h[0]=='Gambling' else
+                        'hamburger'     if h[0]=='Fast Food' else
+                        'candy'         if h[0]=='Sugar' else
+                        'plus'
+                    }}"></i>
+                    <h2>{{ h[0] }}</h2>
+                </div>
+                <div class="settings-wrapper">
+                    <i class="settings-icon" data-lucide="settings" onclick="openHabitMenu(event)"></i>
+                    <div class="habit-menu hidden">
+                        <button onclick="deleteHabit(event)" class="danger">Remove</button>
+                    </div>
+                </div>
+            </div>
+
+            <p class="label">Abstinence time</p>
+            <p class="big-time">
+                <span class="time" data-time="{{ h[1] }}"></span>
+            </p>
+
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- RIGHT: detail panel -->
+    <div class="content-area">
+        <div class="content-wrapper hidden" id="content-wrapper">
+
+            <button class="close-panel" onclick="closePanel(event)">
+                <i data-lucide="x"></i>
+            </button>
+
+            <div class="main-panel">
+                <div class="hero-card">
+                    <div class="hero-header">
+                        <div class="hero-left">
+                            <div id="hero-icon"></div>
+                            <div>
+                                <h1 id="habit-name">Habit</h1>
+                                <span id="streak-badge"></span>
+                            </div>
+                        </div>
+                        <button class="reset-btn" onclick="openResetModal()">Reset</button>
+                    </div>
+
+                    <p class="label">Abstinence time</p>
+                    <h2 id="habit-time" class="hero-time">--</h2>
+
+                    <p class="goal-text">
+                        <span>Goal: <span id="goal-days">--</span></span>
+                        <span id="goal-percent">0%</span>
+                    </p>
+
+                    <div class="progress-container big">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+
+                    <div class="milestones-row">
+                        <button class="milestones-btn" onclick="openMilestonesModal()">All Milestones</button>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <p>Money saved</p>
+                        <h3 id="money">$0.00</h3>
+                    </div>
+                    <div class="stat-box">
+                        <p>Time saved</p>
+                        <h3 id="time-saved">0 hrs</h3>
+                    </div>
+                </div>
+
+                <!-- Daily diary -->
+                <div class="diary-section">
+                    <div class="diary-header">
+                        <span class="diary-title">Daily Diary</span>
+                        <button class="diary-history-btn" onclick="openDiaryModal()">
+                            History
+                            <span class="diary-history-count" id="diary-count"></span>
+                        </button>
+                    </div>
+                    <div class="diary-compose">
+                        <textarea id="diary-input" placeholder="How are you feeling today? Write anything..."></textarea>
+                        <button class="diary-save-btn" onclick="addDiaryEntry()">Log Entry</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODALS -->
+
+<div id="milestones-modal" class="modal hidden">
+    <div class="modal-box milestones-modal-box">
+        <div class="milestones-modal-header">
+            <div>
+                <h2 class="milestones-modal-title">Milestones</h2>
+                <p class="milestones-modal-habit" id="milestones-modal-habit"></p>
+            </div>
+            <button class="diary-modal-close" onclick="closeMilestonesModal()">×</button>
+        </div>
+        <div class="milestones-grid" id="milestones-grid"></div>
+    </div>
+</div>
+
+<div id="milestone-popup" class="milestone-popup hidden">
+    <div class="milestone-popup-inner">
+        <div class="milestone-popup-icon" id="milestone-popup-icon"></div>
+        <div>
+            <p class="milestone-popup-label">Milestone reached!</p>
+            <p class="milestone-popup-name" id="milestone-popup-name"></p>
+        </div>
+    </div>
+</div>
+
+<div id="diary-modal" class="modal hidden">
+    <div class="modal-box diary-modal-box">
+        <div class="diary-modal-header">
+            <div>
+                <h2 class="diary-modal-title">Daily Diary</h2>
+                <p class="diary-modal-habit" id="diary-modal-habit"></p>
+            </div>
+            <button class="diary-modal-close" onclick="closeDiaryModal()">×</button>
+        </div>
+        <div class="diary-entries" id="diary-entries"></div>
+    </div>
+</div>
+
+<div id="reset-modal" class="modal hidden">
+    <div class="modal-box">
+        <p>Reset this habit?</p>
+        <div class="modal-actions">
+            <button onclick="closeResetModal()">Cancel</button>
+            <button onclick="confirmReset()" class="danger">Reset</button>
+        </div>
+    </div>
+</div>
+
+
+<button class="add-btn" onclick="openAddModal(event)">+</button>
+
+<div id="add-modal" class="modal hidden">
+    <div class="modal-box">
+        <p class="modal-title">What habit will we quit?</p>
+        <div class="habit-list">
+            <div class="habit-option" onclick="selectHabitOption(event, 'Custom')">
+                <i data-lucide="plus"></i><span>Custom Habit</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Smoking')">
+                <i data-lucide="cigarette-off"></i><span>Smoking</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Drugs')">
+                <i data-lucide="cannabis-off"></i><span>Drugs</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Pills')">
+                <i data-lucide="pill"></i><span>Pills</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Porn')">
+                <i data-lucide="hat-glasses"></i><span>Porn</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Weed')">
+                <i data-lucide="leaf"></i><span>Weed</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Procrastination')">
+                <i data-lucide="sofa"></i><span>Procrastination</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Video Games')">
+                <i data-lucide="gamepad-2"></i><span>Video Games</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Gambling')">
+                <i data-lucide="piggy-bank"></i><span>Gambling</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Fast Food')">
+                <i data-lucide="hamburger"></i><span>Fast Food</span>
+            </div>
+            <div class="habit-option" onclick="selectHabitOption(event, 'Sugar')">
+                <i data-lucide="candy"></i><span>Sugar</span>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button onclick="closeAddModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+
+<div id="setup-modal" class="modal hidden">
+    <div class="modal-box modern">
+        <div class="modal-header">
+            <h2 id="setup-title">Setup Habit</h2>
+        </div>
+        <div class="modal-body">
+
+            <div class="input-group small hidden" id="custom-name-group">
+                <label>Habit name</label>
+                <input id="custom-name-input" type="text" placeholder="e.g. Energy drinks">
+            </div>
+
+            <div class="input-row">
+                <div class="input-group small">
+                    <label>Money spent per day</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix">$</span>
+                        <input id="money-input" type="number" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+                <div class="input-group small">
+                    <label>Time spent per day</label>
+                    <div class="input-wrapper">
+                        <input id="time-input" type="number" min="0" step="1" placeholder="0">
+                        <span class="input-suffix">min</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group small">
+                <label>Last time used</label>
+                <input id="date-input" type="datetime-local" onchange="this.style.borderBottom=''">
+            </div>
+
+            <div class="input-group large">
+                <label>Notes</label>
+                <textarea id="note-input" placeholder="Optional notes..."></textarea>
+            </div>
+
+        </div>
+        <div class="modal-actions modern-actions">
+            <button onclick="closeSetupModal()" class="ghost">Cancel</button>
+            <button onclick="saveHabit()" class="primary">Save Habit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+//Account dropdown
+function toggleAccountDropdown(event) {
+    event.stopPropagation();
+    document.getElementById("account-dropdown").classList.toggle("open");
+}
+document.addEventListener("click", () => {
+    const d = document.getElementById("account-dropdown");
+    if (d) d.classList.remove("open");
+});
+
+
+let selectedHabitName  = null;
+let currentHabitName   = null;
+let activeHabitTime    = null;
+let activeHabitMoney   = 0;
+let activeHabitTimePerDay = 0;
+
+const HABIT_ICONS = {
+    "Smoking": "cigarette-off", "Drugs": "cannabis-off", "Pills": "pill",
+    "Porn": "hat-glasses", "Weed": "leaf", "Procrastination": "sofa",
+    "Video Games": "gamepad-2", "Gambling": "piggy-bank",
+    "Fast Food": "hamburger", "Sugar": "candy"
+};
+
+// Milestones data 
+const MILESTONES = [
+    { days: 1,    label: "1 Day" },    { days: 2,    label: "2 Days" },
+    { days: 3,    label: "3 Days" },   { days: 4,    label: "4 Days" },
+    { days: 5,    label: "5 Days" },   { days: 6,    label: "6 Days" },
+    { days: 7,    label: "1 Week" },   { days: 10,   label: "10 Days" },
+    { days: 14,   label: "2 Weeks" },  { days: 21,   label: "3 Weeks" },
+    { days: 30,   label: "1 Month" },  { days: 35,   label: "5 Weeks" },
+    { days: 42,   label: "6 Weeks" },  { days: 50,   label: "50 Days" },
+    { days: 60,   label: "2 Months" }, { days: 70,   label: "10 Weeks" },
+    { days: 90,   label: "3 Months" }, { days: 100,  label: "100 Days" },
+    { days: 120,  label: "4 Months" }, { days: 150,  label: "5 Months" },
+    { days: 180,  label: "6 Months" }, { days: 200,  label: "200 Days" },
+    { days: 210,  label: "7 Months" }, { days: 240,  label: "8 Months" },
+    { days: 250,  label: "250 Days" }, { days: 270,  label: "9 Months" },
+    { days: 300,  label: "300 Days" }, { days: 330,  label: "11 Months" },
+    { days: 365,  label: "1 Year" },   { days: 400,  label: "400 Days" },
+    { days: 450,  label: "15 Months" },{ days: 500,  label: "500 Days" },
+    { days: 700,  label: "700 Days" }, { days: 730,  label: "2 Years" },
+    { days: 1000, label: "1,000 Days"},{ days: 1095, label: "3 Years" },
+    { days: 1460, label: "4 Years" },  { days: 1825, label: "5 Years" },
+    { days: 2000, label: "2,000 Days"},{ days: 2190, label: "6 Years" },
+    { days: 2555, label: "7 Years" },  { days: 2920, label: "8 Years" },
+    { days: 3000, label: "3,000 Days"},{ days: 3285, label: "9 Years" },
+    { days: 3650, label: "10 Years" },
+];
+
+// Timer helpers
+
+function formatTimeSaved(diffSec, timePerDay) {
+    const totalSec = (diffSec / 86400) * timePerDay * 60;
+    if (totalSec < 60) return Math.floor(totalSec) + " sec";
+    const totalMin = totalSec / 60;
+    if (totalMin < 60) return Math.floor(totalMin) + " min";
+    const totalHours = totalMin / 60;
+    if (totalHours < 24) return `${Math.floor(totalHours)}h ${Math.floor(totalMin % 60)}m`;
+    return `${Math.floor(totalHours / 24)}d ${Math.floor(totalHours % 24)}h`;
+}
+
+// Updates all timers every second
+function updateCards() {
+    document.querySelectorAll(".time").forEach(el => {
+        const diffSec = Math.floor((new Date() - new Date(el.dataset.time)) / 1000);
+        const d = Math.floor(diffSec / 86400);
+        const h = Math.floor((diffSec % 86400) / 3600);
+        const m = Math.floor((diffSec % 3600) / 60);
+        const s = diffSec % 60;
+        el.innerText = `${d}d ${h}h ${m}m ${s}s`;
+    });
+
+    if (!activeHabitTime) return;
+
+    const diffSec = Math.floor((new Date() - activeHabitTime) / 1000);
+    const days = Math.floor(diffSec / 86400);
+    const h = Math.floor((diffSec % 86400) / 3600);
+    const m = Math.floor((diffSec % 3600) / 60);
+    const s = diffSec % 60;
+
+    document.getElementById("habit-time").innerText = `${days}d ${h}h ${m}m ${s}s`;
+
+    const next = MILESTONES.find(ms => ms.days > days);
+    if (next) {
+        document.getElementById("goal-days").innerText = next.label;
+        const progress = Math.min((diffSec / (next.days * 86400)) * 100, 100);
+        document.getElementById("progress-bar").style.width = progress + "%";
+        document.getElementById("goal-percent").innerText = progress.toFixed(1) + "%";
+    } else {
+        document.getElementById("goal-days").innerText = "10 Years";
+        document.getElementById("progress-bar").style.width = "100%";
+        document.getElementById("goal-percent").innerText = "100%";
+    }
+
+    document.getElementById("money").innerText = activeHabitMoney > 0
+        ? "$" + ((diffSec / 86400) * activeHabitMoney).toFixed(2)
+        : "∞";
+
+    document.getElementById("time-saved").innerText = formatTimeSaved(diffSec, activeHabitTimePerDay);
+
+    checkMilestones(days, currentHabitName);
+}
+
+setInterval(updateCards, 1000);
+updateCards();
+
+// Habit card selection
+
+function selectHabit(name, time, el, moneyPerDay, timePerDay) {
+    moneyPerDay = parseFloat(moneyPerDay) || 0;
+    timePerDay  = parseFloat(timePerDay)  || 0;
+
+    document.getElementById("content-wrapper").classList.remove("hidden");
+    document.querySelectorAll(".habit-card").forEach(c => c.classList.remove("active"));
+    el.classList.add("active");
+
+    document.getElementById("habit-name").innerText = name;
+    activeHabitTime       = new Date(time);
+    activeHabitMoney      = moneyPerDay;
+    activeHabitTimePerDay = timePerDay;
+    currentHabitName      = name;
+
+    const days = Math.floor((new Date() - activeHabitTime) / 86400000);
+    let streak = "";
+    if (days >= 1) streak = "🔥";
+    if (days >= 3) streak = "🔥🔥";
+    if (days >= 7) streak = "🔥🔥🔥";
+    document.getElementById("streak-badge").innerText = streak;
+
+    const iconContainer = document.getElementById("hero-icon");
+    iconContainer.innerHTML = `<i data-lucide="${HABIT_ICONS[name] || 'activity'}"></i>`;
+    lucide.createIcons();
+
+    updateCards();
+    loadDiaryEntries(name);
+}
+
+function closePanel(event) {
+    if (event) event.stopPropagation();
+    document.getElementById("content-wrapper").classList.add("hidden");
+    activeHabitTime = null;
+    document.querySelectorAll(".habit-card").forEach(c => c.classList.remove("active"));
+}
+
+// Add habit modal
+
+function openAddModal(event) {
+    if (event) event.stopPropagation();
+    document.getElementById("add-modal").classList.remove("hidden");
+}
+
+function closeAddModal() {
+    document.getElementById("add-modal").classList.add("hidden");
+}
+
+function selectHabitOption(event, name) {
+    event.stopPropagation();
+    selectedHabitName = name;
+    document.getElementById("add-modal").classList.add("hidden");
+    document.getElementById("setup-modal").classList.remove("hidden");
+    document.getElementById("setup-title").innerText = name;
+    if (name === "Custom") {
+        document.getElementById("custom-name-group").classList.remove("hidden");
+    } else {
+        document.getElementById("custom-name-group").classList.add("hidden");
+    }
+}
+
+function closeSetupModal() {
+    document.getElementById("setup-modal").classList.add("hidden");
+    ["money-input", "time-input", "date-input", "note-input", "custom-name-input"].forEach(id => {
+        document.getElementById(id).value = "";
+    });
+    document.getElementById("custom-name-group").classList.add("hidden");
+}
+
+function saveHabit() {
+    if (selectedHabitName === "Custom") {
+        const customName = document.getElementById("custom-name-input").value.trim();
+        if (!customName) { document.getElementById("custom-name-input").focus(); return; }
+        selectedHabitName = customName;
+    }
+
+    const money = document.getElementById("money-input").value || 0;
+    const time  = document.getElementById("time-input").value  || 0;
+    const date  = document.getElementById("date-input").value;
+
+    if (!date) {
+        const dateInput = document.getElementById("date-input");
+        dateInput.style.borderBottom = "1.5px solid #f87171";
+        dateInput.placeholder = "Please set a date";
+        dateInput.focus();
+        return;
+    }
+
+    const data = new URLSearchParams();
+    data.append("habit", selectedHabitName);
+    data.append("money", money);
+    data.append("time", time);
+    data.append("last_used", date);
+
+    fetch("/save_details", { method: "POST", body: data }).then(() => {
+        const container = document.querySelector(".habit-container");
+        const card = document.createElement("div");
+        card.className = "habit-card";
+        card.dataset.money      = money;
+        card.dataset.timePerDay = time;
+        card.setAttribute("onclick", `selectHabit('${selectedHabitName}', '${date}', this, ${money}, ${time})`);
+
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="left">
+                    <i data-lucide="${HABIT_ICONS[selectedHabitName] || 'activity'}"></i>
+                    <h2>${selectedHabitName}</h2>
+                </div>
+                <div class="settings-wrapper">
+                    <i class="settings-icon" data-lucide="settings" onclick="openHabitMenu(event)"></i>
+                    <div class="habit-menu hidden">
+                        <button onclick="deleteHabit(event)" class="danger">Remove</button>
+                    </div>
+                </div>
+            </div>
+            <p class="label">Abstinence time</p>
+            <p class="big-time"><span class="time" data-time="${date}"></span></p>
+        `;
+
+        container.appendChild(card);
+        lucide.createIcons();
+
+        const noteContent = document.getElementById("note-input").value.trim();
+        if (noteContent) {
+            fetch("/add_note", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ habit: selectedHabitName, content: noteContent })
+            });
+        }
+
+        closeSetupModal();
+        document.getElementById("add-modal").classList.add("hidden");
+    });
+}
+
+//Habit menu (settings / delete) 
+
+function openHabitMenu(event) {
+    event.stopPropagation();
+    const menu = event.target.closest(".settings-wrapper").querySelector(".habit-menu");
+    document.querySelectorAll(".habit-menu").forEach(m => { if (m !== menu) m.classList.add("hidden"); });
+    menu.classList.toggle("hidden");
+}
+
+document.addEventListener("click", () => {
+    document.querySelectorAll(".habit-menu").forEach(m => m.classList.add("hidden"));
+});
+
+function deleteHabit(event) {
+    event.stopPropagation();
+    const card = event.target.closest(".habit-card");
+    const name = card.querySelector("h2").innerText;
+    fetch("/delete_habit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+    }).then(() => card.remove());
+}
+
+//Reset modal 
+
+function openResetModal()  { document.getElementById("reset-modal").classList.remove("hidden"); }
+function closeResetModal() { document.getElementById("reset-modal").classList.add("hidden"); }
+
+function confirmReset() {
+    if (!currentHabitName) return;
+    fetch("/reset_habit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: currentHabitName })
+    }).then(() => location.reload());
+}
+
+//Milestones 
+
+function checkMilestones(days, habitName) {
+    if (!habitName) return;
+    const key = `announced_${habitName}`;
+    const announced = JSON.parse(localStorage.getItem(key) || "[]");
+
+    MILESTONES.forEach(m => {
+        if (days >= m.days && !announced.includes(m.days)) {
+            announced.push(m.days);
+            localStorage.setItem(key, JSON.stringify(announced));
+            showMilestonePopup(m);
+        }
+    });
+}
+
+function showMilestonePopup(m) {
+    const popup = document.getElementById("milestone-popup");
+    document.getElementById("milestone-popup-name").innerText = m.label;
+    popup.classList.remove("hidden");
+    setTimeout(() => popup.classList.add("hidden"), 4000);
+}
+
+function openMilestonesModal() {
+    const days = activeHabitTime ? Math.floor((new Date() - activeHabitTime) / 86400000) : 0;
+    document.getElementById("milestones-modal-habit").innerText = currentHabitName || "";
+    document.getElementById("milestones-modal").classList.remove("hidden");
+
+    const grid = document.getElementById("milestones-grid");
+    grid.innerHTML = MILESTONES.map(m => {
+        const reached = days >= m.days;
+        const pct = reached ? 100 : Math.min(Math.floor((days / m.days) * 100), 99);
+        return `
+            <div class="ms-card ${reached ? 'reached' : 'locked'}">
+                <div class="ms-card-icon">
+                    <span class="ms-icon-check ${reached ? 'ms-icon-reached' : 'ms-icon-locked'}">✓</span>
+                </div>
+                <div class="ms-card-info">
+                    <div class="ms-card-top">
+                        <p class="ms-card-label">${m.label}</p>
+                    </div>
+                    <div class="ms-card-bar-bg">
+                        <div class="ms-card-bar" style="width:${pct}%"></div>
+                    </div>
+                </div>
+            </div>`;
+    }).join("");
+}
+
+function closeMilestonesModal() {
+    document.getElementById("milestones-modal").classList.add("hidden");
+}
+
+// Diary
+
+function openDiaryModal() {
+    document.getElementById("diary-modal-habit").innerText = currentHabitName || "";
+    document.getElementById("diary-modal").classList.remove("hidden");
+    loadDiaryEntries(currentHabitName);
+}
+
+function closeDiaryModal() {
+    document.getElementById("diary-modal").classList.add("hidden");
+}
+
+function loadDiaryEntries(habitName) {
+    if (!habitName) return;
+    const container = document.getElementById("diary-entries");
+    container.innerHTML = `<p class="diary-empty">Loading...</p>`;
+
+    fetch(`/get_notes/${encodeURIComponent(habitName)}`)
+        .then(r => r.json())
+        .then(entries => {
+            const countEl = document.getElementById("diary-count");
+            countEl.textContent = entries.length > 0 ? entries.length : "";
+            container.innerHTML = "";
+
+            if (entries.length === 0) {
+                container.innerHTML = `<p class="diary-empty">No entries yet. Start writing below.</p>`;
+                return;
+            }
+
+            entries.forEach(e => {
+                const div = document.createElement("div");
+                div.className = "diary-entry";
+                div.innerHTML = `
+                    <div class="diary-entry-header">
+                        <span class="diary-date">${e.created_at}</span>
+                        <button class="diary-delete-btn" onclick="deleteDiaryEntry(${e.id}, this)">×</button>
+                    </div>
+                    <p class="diary-entry-text">${e.content}</p>
+                `;
+                container.appendChild(div);
+            });
+        });
+}
+
+function addDiaryEntry() {
+    const input   = document.getElementById("diary-input");
+    const content = input.value.trim();
+    if (!content || !currentHabitName) return;
+
+    const btn = document.querySelector(".diary-save-btn");
+    btn.disabled = true;
+
+    fetch("/add_note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ habit: currentHabitName, content })
+    })
+    .then(r => r.json())
+    .then(data => {
+        input.value  = "";
+        btn.disabled = false;
+
+        const countEl = document.getElementById("diary-count");
+        countEl.textContent = (parseInt(countEl.textContent) || 0) + 1;
+
+        const modal = document.getElementById("diary-modal");
+        if (!modal.classList.contains("hidden")) {
+            const container = document.getElementById("diary-entries");
+            const empty = container.querySelector(".diary-empty");
+            if (empty) empty.remove();
+
+            const div = document.createElement("div");
+            div.className = "diary-entry diary-entry-new";
+            div.innerHTML = `
+                <div class="diary-entry-header">
+                    <span class="diary-date">${data.created_at}</span>
+                    <button class="diary-delete-btn" onclick="deleteDiaryEntry(${data.id}, this)">×</button>
+                </div>
+                <p class="diary-entry-text">${data.content}</p>
+            `;
+            container.prepend(div);
+            setTimeout(() => div.classList.remove("diary-entry-new"), 400);
+        }
+    });
+}
+
+function deleteDiaryEntry(id, btn) {
+    fetch("/delete_note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+    }).then(() => {
+        const countEl  = document.getElementById("diary-count");
+        const newCount = Math.max(0, (parseInt(countEl.textContent) || 0) - 1);
+        countEl.textContent = newCount > 0 ? newCount : "";
+
+        const entry = btn.closest(".diary-entry");
+        entry.style.opacity   = "0";
+        entry.style.transform = "translateX(10px)";
+        setTimeout(() => {
+            entry.remove();
+            const container = document.getElementById("diary-entries");
+            if (!container.querySelector(".diary-entry")) {
+                container.innerHTML = `<p class="diary-empty">No entries yet. Start writing above.</p>`;
+            }
+        }, 300);
+    });
+}
+
+// Init 
+
+window.onload = () => {
+    lucide.createIcons();
+
+    const firstCard = document.querySelector(".habit-card");
+    if (firstCard) {
+        selectHabit(
+            firstCard.querySelector("h2").innerText,
+            firstCard.querySelector(".time").dataset.time,
+            firstCard,
+            firstCard.dataset.money      || 0,
+            firstCard.dataset.timePerDay || 0
+        );
+    }
+
+    if (sessionStorage.getItem('openMilestones') === '1') {
+        sessionStorage.removeItem('openMilestones');
+        setTimeout(openMilestonesModal, 300);
+    }
+};
+
+</script>
+</body>
+</html>

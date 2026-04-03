@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Habit Details</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+
+    <div class="nav-left">
+        {% if user %}
+            Welcome, {{ user }}
+        {% else %}
+            Welcome
+        {% endif %}
+    </div>
+
+    <div class="nav-center">
+        HealMind
+    </div>
+
+  
+    <div class="nav-right">
+        <a href="/">Home</a>
+        <a href="/ai">AI</a>
+        <a href="/account">Account</a>
+    </div>
+
+</div>
+
+<div class="form-container">
+    <h2>{{ habit }}</h2>
+
+    <form method="POST" action="/save_details">
+
+        <input type="hidden" name="habit" value="{{ habit }}">
+
+        <input type="number" name="money" placeholder="Money per day" required><br><br>
+
+        <input type="number" name="time" placeholder="Hours per day" required><br><br>
+
+        <input type="datetime-local" name="last_used" id="last_used" required><br><br>
+
+        <button type="submit">Save</button>
+
+    </form>
+</div>
+
+<script>
+const now = new Date().toISOString().slice(0,16);
+document.getElementById("last_used").value = now;
+</script>
+
+</body>
+</html>
